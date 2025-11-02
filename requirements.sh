@@ -5,6 +5,8 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate rl_test
 
 # install dependencies
+pip install swig 
+
 pip install --upgrade --force-reinstall "gymnasium[classic-control,box2d]==0.28.1"
 
 pip install wandb tqdm 

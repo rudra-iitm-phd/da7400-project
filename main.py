@@ -17,14 +17,14 @@ DEVICE = "cuda" if torch.cuda.is_available() else("mps" if torch.backends.mps.is
 BATCH_SIZE = 128
 GAMMA = 0.99
 LEARNING_RATE = 3e-4
-EPISODES = 2000
+EPISODES = 600
 CODEBOOK_DIM = 64
 
 def create_name(configuration:dict):
       l = [f'{k}-{v}' for k,v in configuration.items() if k not in ['output_size', 'wandb_entity', 'wandb_project', 'wandb_sweep', 'sweep_id', 'wandb']]
       return '_'.join(l)
 
-def train():
+def train(log=False):
 
       run =  wandb.init(entity = config['wandb_entity'], project = config['wandb_project'], config = config)
 
