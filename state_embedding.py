@@ -111,6 +111,43 @@ class SoftHashEmbedding(nn.Module):
             probs = F.softmax(self.bin_predictor(state), dim=-1)  # (batch, k)
             embedding = probs @ self.codebook                     # (batch, embed_dim)
             return embedding
+
+
+class EnergyEmbedding(nn.Module):
+      def __init__(self, input_dim, hidden_dim):
+            super(EnergyEmbedding, self).__init__()
+            
+            feature_dim = hidden_dim
+            # MLP: state -> feature vector f(x)
+            self.feature_net = nn.Sequential(
+                  nn.Linear(input_dim, hidden_dim),
+                  nn.ReLU(),
+                  nn.Linear(hidden_dim, feature_dim),
+                  nn.ReLU()
+            )
+            
+            # Learnable θ matrix (Θ ∈ R^{d_phi × d_f})
+            self.theta = nn.Parameter(torch.randn(feature_dim, feature_dim))
+
+            self.apply(self._weights_init)
+      
+      def forward(self, x):
+            # Step 1: f(x)
+            f_x = self.feature_net(x)  # [batch, feature_dim]
+            
+            # Step 2: θ f(x)
+            # (batch, feature_dim) = (batch, feature_dim) @ (feature_dim, feature_dim)^T
+            theta_f = F.relu(torch.matmul(f_x, self.theta.T))
+            
+            # Step 3: φ(x) = exp(-Θ f(x))
+            phi_x = torch.exp(-theta_f)
+            
+            return phi_x
+
+      def _weights_init(self, m):
+            
+            if isinstance(m, nn.Linear) or isinstance(m, nn.Parameter):
+                  nn.init.xavier_uniform_(m.weight)
       
 
 

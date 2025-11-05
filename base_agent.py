@@ -1,7 +1,8 @@
 from critic import ValueNetwork
 from actor import Policy
 from buffer import Buffer
-from state_embedding import StateEmbedding, VectorQuantizer, SoftHashEmbedding
+from state_embedding import StateEmbedding, VectorQuantizer, SoftHashEmbedding, EnergyEmbedding
+from plot import plot_state_representations_w_corr
 
 import torch
 import torch.nn as nn
@@ -15,7 +16,7 @@ import gymnasium as gym
 
 
 class BaseAgent:
-      def __init__(self, embedding:StateEmbedding, critic:ValueNetwork, target_critic:ValueNetwork, actor:Policy, env:gym.Env, device:str, batch_size:int, gamma:float, lr:float=3e-4, embedding_loss_coeff:float=0.4):
+      def __init__(self, embedding:EnergyEmbedding, critic:ValueNetwork, target_critic:ValueNetwork, actor:Policy, env:gym.Env, device:str, batch_size:int, gamma:float, lr:float=3e-4, embedding_loss_coeff:float=0.4, use_log:bool=False):
 
             self.env = env
             
@@ -35,6 +36,8 @@ class BaseAgent:
             self.gamma = gamma
 
             self.beta = 0.2
+
+            self.use_log = use_log
 
             # Default embedding loss coefficient (can be overridden)
             self.embedding_loss_coeff = embedding_loss_coeff
@@ -87,7 +90,7 @@ class BaseAgent:
             
             return actor_loss
 
-      def compute_embedding_loss(self, states):
+      def compute_embedding_loss(self, states, eps=1e-8):
             embeddings = self.embedding(states)
             with torch.no_grad():
                   values = self.target_critic(embeddings)
@@ -99,6 +102,9 @@ class BaseAgent:
             phi_1, phi_2 = embeddings, embeddings[idx]
 
             v_1, v_2 = values.squeeze(), values[idx].squeeze()
+
+            if self.use_log:
+                  return F.mse_loss(torch.log(torch.clamp(torch.norm(phi_1 - phi_2, 2, dim=-1), min=eps)), v_1 - v_2)
 
             return F.mse_loss(torch.norm(phi_1 - phi_2, 2, dim = -1), v_1 - v_2)
             
@@ -124,12 +130,15 @@ class BaseAgent:
             pbar = tqdm(range(n_episodes), desc="Initializing...", unit="episode", 
                    bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} ')
 
+            n = 0
             for ep in pbar:
                   state, _ = self.env.reset()
                   ep_reward = 0
                   done = False
 
                   step_count = 0
+
+                  sampled_states = None
 
                   while not done:
                         state_tensor = torch.FloatTensor(state).to(self.device)
@@ -190,10 +199,16 @@ class BaseAgent:
                                     self.optimizer_actor.step()
 
                               self.soft_update()
-                  
+                              
+                              sampled_states = states
+
+                              
+
                   # Update reward history
                   reward_history.append(ep_reward)
                   avg_reward = np.mean(reward_history)
+
+                  n+=1
 
                   pbar.set_description(
                         f"Ep {ep+1}/{n_episodes} | "
@@ -202,9 +217,20 @@ class BaseAgent:
                         )
                   
                   # Log to wandb
-                  wandb.log({
-                        "episode": ep + 1,
-                        "episode_reward": ep_reward,
-                        "avg_reward_100ep": avg_reward,
-                        "episode_steps": step_count
-                  })
+                  
+                  # if len(self.buffer) > self.batch_size and (n+1) %50==0:
+                  #       fig = plot_state_representations_w_corr(self.embedding, self.critic, sampled_states, self.device,log=True)
+                  #       wandb.log({"Lunar Lander v2 state embeddings":wandb.Image(fig)})
+                  
+                  
+                  # wandb.log({
+                  #       "episode": ep + 1,
+                  #       "episode_reward": ep_reward,
+                  #       "avg_reward_100ep": avg_reward,
+                  #       "episode_steps": step_count
+                  # })
+
+                  
+                 
+
+                  

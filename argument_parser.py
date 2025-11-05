@@ -10,6 +10,19 @@ parser.add_argument('-ec', '--embedding_loss_coeff',
                   type = float, default = 0.4,
                   help = 'Embedding loss coefficient')
 
+parser.add_argument('-e', '--embedding', 
+                  type = str, default = "vanilla",
+                  help = "Type of Embedding. Choice : 1) vanilla 2) energy")
+
+parser.add_argument('-env', '--env', 
+                  type = str, default = "LunarLander-v2",
+                  help = "Choice of Environment")
+
+parser.add_argument('-ulog', '--use_log', 
+                  type = bool, default = False,
+                  help = "Use Log transformation for feature difference")
+
+
 parser.add_argument('--wandb', action='store_true', help='Enable wandb logging')
 
 parser.add_argument('-we', '--wandb_entity', 
