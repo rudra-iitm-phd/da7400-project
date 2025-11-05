@@ -218,17 +218,17 @@ class BaseAgent:
                   
                   # Log to wandb
                   
-                  # if len(self.buffer) > self.batch_size and (n+1) %50==0:
-                  #       fig = plot_state_representations_w_corr(self.embedding, self.critic, sampled_states, self.device,log=True)
-                  #       wandb.log({"Lunar Lander v2 state embeddings":wandb.Image(fig)})
+                  if len(self.buffer) > self.batch_size and (n+1) %50==0:
+                        fig = plot_state_representations_w_corr(self.embedding, self.critic, sampled_states, self.device,log=True)
+                        wandb.log({"Lunar Lander v2 state embeddings":wandb.Image(fig)})
                   
                   
-                  # wandb.log({
-                  #       "episode": ep + 1,
-                  #       "episode_reward": ep_reward,
-                  #       "avg_reward_100ep": avg_reward,
-                  #       "episode_steps": step_count
-                  # })
+                  wandb.log({
+                        "episode": ep + 1,
+                        "episode_reward": ep_reward,
+                        "avg_reward_100ep": avg_reward,
+                        "episode_steps": step_count
+                  })
 
                   
                  
