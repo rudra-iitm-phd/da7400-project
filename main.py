@@ -87,7 +87,6 @@ if __name__ == "__main__":
             wandb.agent(sweep_id, function=train, count=200)
             wandb.finish()
 
-      train()
             
 
 

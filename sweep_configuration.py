@@ -1,5 +1,5 @@
 sweep_config = {
-            "method": "bayes",  # Use Bayesian optimization for hyperparameter tuning
+            "method": "grid",  # Use Bayesian optimization for hyperparameter tuning
             "metric": {"name": "avg_reward_100ep", "goal": "maximize"},
             "parameters": {
                 "batch_size":{"values": [128, 256]},
