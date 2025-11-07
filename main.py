@@ -28,12 +28,12 @@ def create_name(configuration:dict):
 
 def train(log=False):
 
-      run =  wandb.init(entity = config['wandb_entity'], project = config['wandb_project'], config = config)
+      # run =  wandb.init(entity = config['wandb_entity'], project = config['wandb_project'], config = config)
 
-      sweep_config = wandb.config
-      config.update(sweep_config)
+      # sweep_config = wandb.config
+      # config.update(sweep_config)
 
-      run.name = create_name(wandb.config)
+      # run.name = create_name(wandb.config)
 
       BATCH_SIZE = config['batch_size']
       embedding_coeff = config['embedding_loss_coeff']
@@ -41,7 +41,7 @@ def train(log=False):
       env = configure.get_env()
       shared.ENV_NAME = config["env"]
       
-      ACTION_DIM = env.action_space.n
+      ACTION_DIM = env.action_space.shape[0] if shared.ENV_NAME in ["BipedalWalker-v3"] else env.action_space.n
       STATE_DIM = env.observation_space.shape[0]
 
       # embedding_net = StateEmbedding(STATE_DIM, EMBEDDING_DIM)
@@ -61,7 +61,7 @@ def train(log=False):
       target_critic.to(DEVICE)
       target_critic.load_state_dict(critic.state_dict()) 
 
-      actor = Policy(EMBEDDING_DIM, ACTION_DIM, HIDDEN_DIM)
+      actor = configure.get_policy()(EMBEDDING_DIM, ACTION_DIM)
       actor.to(DEVICE)
 
       # Remove SAC-specific parameters (alpha, target_entropy)
@@ -77,15 +77,17 @@ if __name__ == "__main__":
 
       configure = Configure(config)
 
-      if args.wandb_sweep:
-            sweep_config = sweep_configuration.sweep_config
-            if not args.sweep_id:
-                  sweep_id = wandb.sweep(sweep_config, project=config['wandb_project'], entity=config['wandb_entity'])
-            else:
-                  sweep_id = args.sweep_id
+      train()
 
-            wandb.agent(sweep_id, function=train, count=200)
-            wandb.finish()
+      # if args.wandb_sweep:
+      #       sweep_config = sweep_configuration.sweep_config
+      #       if not args.sweep_id:
+      #             sweep_id = wandb.sweep(sweep_config, project=config['wandb_project'], entity=config['wandb_entity'])
+      #       else:
+      #             sweep_id = args.sweep_id
+
+      #       wandb.agent(sweep_id, function=train, count=200)
+      #       wandb.finish()
 
             
 

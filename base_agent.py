@@ -1,11 +1,12 @@
 from critic import ValueNetwork
-from actor import Policy
 from buffer import Buffer
 from state_embedding import StateEmbedding, VectorQuantizer, SoftHashEmbedding, EnergyEmbedding
 from plot import plot_state_representations_w_corr
+import shared
 
 import torch
 import torch.nn as nn
+from torch.distributions import Normal
 import torch.nn.functional as F
 from collections import deque 
 import numpy as np
@@ -16,7 +17,7 @@ import gymnasium as gym
 
 
 class BaseAgent:
-      def __init__(self, embedding:EnergyEmbedding, critic:ValueNetwork, target_critic:ValueNetwork, actor:Policy, env:gym.Env, device:str, batch_size:int, gamma:float, lr:float=3e-4, embedding_loss_coeff:float=0.4, use_log:bool=False):
+      def __init__(self, embedding:EnergyEmbedding, critic:ValueNetwork, target_critic:ValueNetwork, actor, env:gym.Env, device:str, batch_size:int, gamma:float, lr:float=3e-4, embedding_loss_coeff:float=0.4, use_log:bool=False):
 
             self.env = env
             
@@ -48,6 +49,8 @@ class BaseAgent:
             
             self.optimizer_actor = torch.optim.Adam(self.actor_params, lr=lr)
             self.optimizer_critic = torch.optim.Adam(self.critic_params, lr=lr)
+
+            self.is_continuous = True if shared.ENV_NAME in ["BipedalWalker-v3"] else False
             
             
 
@@ -67,11 +70,18 @@ class BaseAgent:
             # Basic Actor-Critic: policy gradient with value function as baseline
             state_embeddings = self.embedding(states)
 
-            action_probs = self.actor(state_embeddings)
-            
-            # Get log probabilities of taken actions
-            dist = torch.distributions.Categorical(action_probs)
-            log_probs = dist.log_prob(actions)
+            if self.is_continuous:
+                  mean, std = self.actor(state_embeddings)
+                  dist = Normal(mean, std)
+                  z = dist.rsample()
+                  pred_actions = torch.tanh(z)
+
+                  log_probs = dist.log_prob(z).sum(-1)
+            else:
+                  action_probs = self.actor(state_embeddings)
+                  # Get log probabilities of taken actions
+                  dist = torch.distributions.Categorical(action_probs)
+                  log_probs = dist.log_prob(actions)
             
             # Calculate advantages (TD error)
             with torch.no_grad():
@@ -144,12 +154,18 @@ class BaseAgent:
                         state_tensor = torch.FloatTensor(state).to(self.device)
                         state_embedding = self.embedding(state_tensor)
 
-                        # Get action from policy
-                        probs = self.actor(state_embedding)
-                        dist = torch.distributions.Categorical(probs)
-                        action = dist.sample()
+                        if self.is_continuous:
+                              action = self.actor.act(state_embedding, deterministic=False)
+                              next_state, reward, terminated, truncated, _ = self.env.step(action)
+                              action = torch.FloatTensor(action)
 
-                        next_state, reward, terminated, truncated, _ = self.env.step(action.item())
+                        else:
+                              # Get action from policy
+                              probs = self.actor(state_embedding)
+                              dist = torch.distributions.Categorical(probs)
+                              action = dist.sample()
+
+                              next_state, reward, terminated, truncated, _ = self.env.step(action.item())
 
                         done = terminated or truncated
 
@@ -218,17 +234,17 @@ class BaseAgent:
                   
                   # Log to wandb
                   
-                  if len(self.buffer) > self.batch_size and (n+1) %50==0:
-                        fig = plot_state_representations_w_corr(self.embedding, self.critic, sampled_states, self.device,log=True)
-                        wandb.log({"Lunar Lander v2 state embeddings":wandb.Image(fig)})
+                  # if len(self.buffer) > self.batch_size and (n+1) %50==0:
+                  #       fig = plot_state_representations_w_corr(self.embedding, self.critic, sampled_states, self.device,log=True)
+                  #       wandb.log({"Lunar Lander v2 state embeddings":wandb.Image(fig)})
                   
                   
-                  wandb.log({
-                        "episode": ep + 1,
-                        "episode_reward": ep_reward,
-                        "avg_reward_100ep": avg_reward,
-                        "episode_steps": step_count
-                  })
+                  # wandb.log({
+                  #       "episode": ep + 1,
+                  #       "episode_reward": ep_reward,
+                  #       "avg_reward_100ep": avg_reward,
+                  #       "episode_steps": step_count
+                  # })
 
                   
                  

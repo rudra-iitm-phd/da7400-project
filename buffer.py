@@ -1,6 +1,7 @@
 from collections import deque, namedtuple
 import random
 import torch
+import shared
 
 class Buffer:
       def __init__(self, buffer_length) -> None:
@@ -12,7 +13,7 @@ class Buffer:
             exp = random.sample(self.buffer, k = batch_size)
             states, actions, rewards, next_states, dones = zip(*exp)
             states  = torch.stack(states)
-            actions = torch.tensor(actions, dtype = torch.int64)
+            actions = torch.stack(actions) if shared.ENV_NAME in ["BipedalWalker-v3"] else torch.tensor(actions, dtype = torch.int64)
             rewards = torch.tensor(rewards, dtype = torch.float32)
             next_states = torch.stack(next_states)
             dones = torch.tensor(dones, dtype = torch.float32)
