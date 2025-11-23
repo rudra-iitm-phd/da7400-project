@@ -13,8 +13,8 @@ import shared
 
 torch.manual_seed(0)
 
-EMBEDDING_DIM = 128
-HIDDEN_DIM = 128
+EMBEDDING_DIM = 128//2
+HIDDEN_DIM = 128//2
 DEVICE = "cuda" if torch.cuda.is_available() else("mps" if torch.backends.mps.is_available() else "cpu")
 BATCH_SIZE = 128
 GAMMA = 0.99

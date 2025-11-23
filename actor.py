@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
+import numpy as np
 
 class Policy(nn.Module):
       def __init__(self, input_dim, n_actions):
@@ -27,90 +28,82 @@ class Policy(nn.Module):
                   nn.init.xavier_uniform_(m.weight)
 
 class ContinuousPolicy(nn.Module):
-      def __init__(self, feature_dim, action_dim):
+      """Simple continuous policy with reparametrization trick"""
+      def __init__(self, feature_dim, action_dim, hidden_dim=256):
             super(ContinuousPolicy, self).__init__()
 
             self.feature_dim = feature_dim
             self.action_dim = action_dim
-            self.log_std_min, self.log_std_max = -20, 2
-
-            self.fc = nn.Sequential(
-                  nn.Linear(self.feature_dim, self.feature_dim),
-                  # nn.ReLU(),
-                  # nn.Linear(self.feature_dim, self.feature_dim),
-                  # nn.ReLU()
+            
+            # Simple 2-layer network
+            self.net = nn.Sequential(
+                  nn.Linear(feature_dim, hidden_dim),
+                  nn.ReLU(),
+                  nn.Linear(hidden_dim, hidden_dim),
+                  nn.ReLU()
             )
-
-            self.mean = nn.Linear(self.feature_dim, self.action_dim)
-            self.log_std = nn.Linear(self.feature_dim, self.action_dim)
+            
+            # Output layers
+            self.mean_layer = nn.Linear(hidden_dim, action_dim)
+            self.log_std_layer = nn.Linear(hidden_dim, action_dim)
+            
+            # Log std bounds
+            self.log_std_min = -20
+            self.log_std_max = 2
 
             self.apply(self._weights_init)
 
       def forward(self, state):
-            x = self.fc(state)
-            mean = self.mean(x)
-            log_std = torch.clamp(self.log_std(x), self.log_std_min, self.log_std_max)
+            """Returns mean and std for the action distribution"""
+            x = self.net(state)
+            mean = self.mean_layer(x)
+            log_std = self.log_std_layer(x)
+            log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
             std = torch.exp(log_std)
             return mean, std
 
-      def sample(self, obs: torch.Tensor):
+      def sample_action(self, state):
             """
-            Sample an action using reparameterization trick.
-            Returns action (tanh squashed) and log_prob (for training).
+            Sample action using reparametrization trick.
+            Returns: (action, log_prob) both with gradients for backprop
             """
-            mean, std = self.forward(obs)
-            dist = Normal(mean, std)
+            mean, std = self.forward(state)
             
-            # Reparameterization trick
-            z = dist.rsample()
+            # Create normal distribution
+            normal = Normal(mean, std)
             
-            # Tanh squashing
+            # Sample using reparametrization trick (rsample allows gradients)
+            z = normal.rsample()
+            
+            # Apply tanh to bound actions to [-1, 1]
             action = torch.tanh(z)
             
-            # Compute log probability with tanh transformation
-            log_prob = dist.log_prob(z)
+            # Compute log probability
+            log_prob = normal.log_prob(z)
             
-            # Apply correction for tanh squashing
-            log_prob -= torch.log(1 - action.pow(2) + 1e-6)
-            log_prob = log_prob.sum(-1, keepdim=True)
+            # Apply tanh correction to log_prob
+            # log π(a|s) = log μ(z|s) - log(1 - tanh²(z))
+            log_prob = log_prob - torch.log(1 - action.pow(2) + 1e-6)
+            log_prob = log_prob.sum(dim=-1, keepdim=True)
             
-            return action, log_prob.squeeze()
+            return action, log_prob
 
-      def log_prob(self, obs, actions):
-            """
-            Compute log probability of given actions.
-            """
-            mean, std = self.forward(obs)
-            dist = Normal(mean, std)
-            
-            # Inverse tanh to get z
-            z = torch.atanh(torch.clamp(actions, -1 + 1e-6, 1 - 1e-6))
-            
-            log_prob = dist.log_prob(z)
-            log_prob -= torch.log(1 - actions.pow(2) + 1e-6)
-            return log_prob.sum(-1)
-
-      def act(self, obs, deterministic=False):
-            """
-            Returns an action (numpy) suitable for env.step().
-            If deterministic=True, returns tanh(mean).
-            """
-            if not torch.is_tensor(obs):
-                  obs = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
-
-            mean, std = self.forward(obs)
-            if deterministic:
-                  action = torch.tanh(mean)
-            else:
-                  dist = Normal(mean, std)
-                  z = dist.sample()
-                  action = torch.tanh(z)
-
-            return action.detach().cpu().numpy().squeeze()
+      def act(self, state, deterministic=False):
+            """Get action for environment interaction (no gradients)"""
+            with torch.no_grad():
+                  mean, std = self.forward(state)
+                  
+                  if deterministic:
+                        action = torch.tanh(mean)
+                  else:
+                        normal = Normal(mean, std)
+                        z = normal.sample()
+                        action = torch.tanh(z)
+                  
+                  return action.cpu().numpy()
 
       def _weights_init(self, m):
-            
             if isinstance(m, nn.Linear):
-                  nn.init.xavier_uniform_(m.weight)
-
+                  nn.init.orthogonal_(m.weight, gain=1.0)
+                  nn.init.constant_(m.bias, 0)
       

@@ -71,12 +71,9 @@ class BaseAgent:
             state_embeddings = self.embedding(states)
 
             if self.is_continuous:
-                  mean, std = self.actor(state_embeddings)
-                  dist = Normal(mean, std)
-                  z = dist.rsample()
-                  pred_actions = torch.tanh(z)
-
-                  log_probs = dist.log_prob(z).sum(-1)
+                  # Sample actions using reparametrization (gradients flow through)
+                  sampled_actions, log_probs = self.actor.sample_action(state_embeddings)
+                  
             else:
                   action_probs = self.actor(state_embeddings)
                   # Get log probabilities of taken actions
@@ -155,7 +152,12 @@ class BaseAgent:
                         state_embedding = self.embedding(state_tensor)
 
                         if self.is_continuous:
-                              action = self.actor.act(state_embedding, deterministic=False)
+                              with torch.no_grad():
+                                          state_embedding = self.embedding(state_tensor)
+                                          action_tensor = self.actor.act(state_embedding.squeeze(0), deterministic=False)
+                              
+                              # Clip actions to valid range
+                              action = np.clip(action_tensor, -1.0, 1.0)
                               next_state, reward, terminated, truncated, _ = self.env.step(action)
                               action = torch.FloatTensor(action)
 
@@ -212,6 +214,8 @@ class BaseAgent:
 
                                     self.optimizer_actor.zero_grad()
                                     actor_loss.backward()
+                                    if self.is_continuous:
+                                          torch.nn.utils.clip_grad_norm_(self.actor_params, 1.0)
                                     self.optimizer_actor.step()
 
                               self.soft_update()
