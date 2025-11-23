@@ -1,4 +1,4 @@
-# 🚀 Reinforcement Learning Framework for LunarLander-v2
+# 🚀 Representation Learning in RL with lower bound of Bisimulation 
 
 A sophisticated RL implementation with state embedding capabilities for enhanced learning performance. This framework supports both vanilla and energy-based embeddings with comprehensive experiment tracking via Weights & Biases.
 
