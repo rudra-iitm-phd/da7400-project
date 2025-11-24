@@ -11,21 +11,21 @@ A sophisticated RL implementation with state embedding capabilities for enhanced
 
 ## 📁 Project Structure
 
-| File | Description | Emoji |
-|------|-------------|--------|
-| `main.py` | Main training script and entry point | 🎯 |
-| `target_main.py` | Target network implementation main | 🎯🎯 |
-| `base_agent.py` | Core agent class with basic RL functionality | 🤖 |
-| `target_base_agent.py` | Base agent with target network support | 🎯🤖 |
-| `actor.py` | Policy network implementation | 🎭 |
-| `critic.py` | Value function approximator | ⭐ |
-| `buffer.py` | Experience replay buffer | 💾 |
-| `state_embedding.py` | State embedding base classes | 🧩 |
-| `shared.py` | Shared utilities and helper functions | 🔗 |
-| `plot.py` | Visualization and plotting utilities | 📈 |
-| `argument_parser.py` | Command-line argument configuration | ⚙️ |
-| `configure.py` | Configuration management | 🛠️ |
-| `sweep_configuration.py` | W&B sweep configuration | 🔍 |
+| File | Description |
+|------|-------------|
+| `main.py` | Main training script and entry point 🎯 |
+| `target_main.py` | Target network implementation main 🎯🎯 |
+| `base_agent.py` | Core agent class with basic RL functionality 🤖 |
+| `target_base_agent.py` | Base agent with target network support 🎯🤖 |
+| `actor.py` | Policy network implementation  🎭 |
+| `critic.py` | Value function approximator  ⭐ |
+| `buffer.py` | Experience replay buffer  💾 |
+| `state_embedding.py` | State embedding base classes  🧩 |
+| `shared.py` | Shared utilities and helper functions  🔗 |
+| `plot.py` | Visualization and plotting utilities 📈 |
+| `argument_parser.py` | Command-line argument configuration ⚙️ |
+| `configure.py` | Configuration management 🛠️ |
+| `sweep_configuration.py` | W&B sweep configuration 🔍 |
 
 ## 🚀 Quick Start
 
@@ -64,18 +64,18 @@ python main.py -env "CartPole-v1" -e vanilla -b 256 --wandb
 
 ### ⚙️ Configuration Parameters
 
-| Parameter | Flag | Type | Default | Description | Emoji |
-|-----------|------|------|---------|-------------|--------|
-| Batch Size | `-b`, `--batch_size` | `int` | `256` | Training batch size | 📦 |
-| Embedding Loss Coefficient | `-ec`, `--embedding_loss_coeff` | `float` | `0.4` | Weight for embedding loss | ⚖️ |
-| Embedding Type | `-e`, `--embedding` | `str` | `"vanilla"` | Type of embedding (`vanilla`/`energy`) | 🧠 |
-| Environment | `-env`, `--env` | `str` | `"LunarLander-v2"` | Gym environment name | 🌙 |
-| Use Log Transform | `-ulog`, `--use_log` | `bool` | `False` | Log transform for feature difference | 📊 |
-| W&B Logging | `--wandb` | `flag` | `False` | Enable W&B experiment tracking | 📈 |
-| W&B Entity | `-we`, `--wandb_entity` | `str` | `'da24d008-iit-madras'` | W&B account/team name | 👥 |
-| W&B Project | `-wp`, `--wandb_project` | `str` | `'da7400-test'` | W&B project name | 🎯 |
-| W&B Sweep | `--wandb_sweep` | `flag` | `False` | Enable parameter sweeping | 🔍 |
-| Sweep ID | `--sweep_id` | `str` | `None` | Existing sweep ID to continue | 🔁 |
+| Parameter | Flag | Type | Default | Description |
+|-----------|------|------|---------|-------------|
+| Batch Size | `-b`, `--batch_size` | `int` | `256` | Training batch size 📦 |
+| Embedding Loss Coefficient | `-ec`, `--embedding_loss_coeff` | `float` | `0.4` | Weight for embedding loss  ⚖️ |
+| Embedding Type | `-e`, `--embedding` | `str` | `"vanilla"` | Type of embedding (`vanilla`/`energy`)  🧠 |
+| Environment | `-env`, `--env` | `str` | `"LunarLander-v2"` | Gym environment name  🌙 |
+| Use Log Transform | `-ulog`, `--use_log` | `bool` | `False` | Log transform for feature difference  📊 |
+| W&B Logging | `--wandb` | `flag` | `False` | Enable W&B experiment tracking  📈 |
+| W&B Entity | `-we`, `--wandb_entity` | `str` | `'da24d008-iit-madras'` | W&B account/team name  👥 |
+| W&B Project | `-wp`, `--wandb_project` | `str` | `'da7400-test'` | W&B project name  🎯 |
+| W&B Sweep | `--wandb_sweep` | `flag` | `False` | Enable parameter sweeping  🔍 |
+| Sweep ID | `--sweep_id` | `str` | `None` | Existing sweep ID to continue  🔁 |
 
 
 ### 🤝 Contributing
